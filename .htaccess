@@ -1,0 +1,19 @@
+# Honar Contract Plugin Security
+# Prevent direct access to PHP files
+
+<Files "*.php">
+    Order Deny,Allow
+    Deny from all
+</Files>
+
+# Allow WordPress to execute plugin files
+<FilesMatch "honar-contract\.php">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# Protect sensitive files
+<FilesMatch "\.(log|txt|md)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
