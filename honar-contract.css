@@ -1,0 +1,13 @@
+.honar-contract-wrap { max-width:800px; margin:20px auto; font-family: Tahoma, Arial, sans-serif; }
+.honar-contract-card { border:1px solid #e6e6e6; padding:18px; border-radius:6px; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,0.03); }
+.honar-contract-header { text-align:center; margin-bottom:10px; }
+.honar-logo { max-height:80px; display:block; margin:0 auto 6px; }
+.honar-title { margin:0; font-size:20px; }
+.honar-sub { margin:0; font-size:14px; color:#777; }
+.field { margin-bottom:12px; }
+.field label { display:block; margin-bottom:6px; font-weight:600; }
+.field input[type="text"], .field input[type="email"], .field input[type="date"] { width:100%; padding:8px 10px; border:1px solid #ddd; border-radius:4px; }
+.signature-wrap { display:block; }
+#honar-submit-btn { background:#0a58ca; color:#fff; border:none; padding:10px 16px; border-radius:6px; cursor:pointer; }
+.honar-success { background:#e9f7ef; padding:10px; border:1px solid #c7eed3; color:#046b2f; border-radius:4px; }
+.honar-error { background:#fdecea; padding:10px; border:1px solid #f5c6cb; color:#8a1f1f; border-radius:4px; }
