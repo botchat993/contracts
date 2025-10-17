@@ -105,7 +105,7 @@ add_shortcode('honar_maghz_contract', function($atts){
                 <div class="field">
                     <label>امضا (با ماوس یا لمس)</label>
                     <div class="signature-wrap">
-                        <canvas id="honar-signature-pad" width="600" height="160" style="border:1px solid #ddd;background:#fff"></canvas>
+                        <canvas id="honar-signature-pad" width="800" height="300" style="border:2px solid #ddd;background:#fff;border-radius:8px;"></canvas>
                         <div><button id="honar-clear-sign" type="button">پاک کردن امضا</button></div>
                         <input type="hidden" name="signature_data" id="signature_data" />
                     </div>
@@ -195,7 +195,18 @@ function honar_contract_submit() {
     $pdf_path = honar_generate_contract_pdf($name, $title, $address, $email, $plan, $date, $jalali_date, $sig_path, $contracts_dir);
 
     if (!$pdf_path) {
-        wp_send_json_error(['msg' => 'خطا در تولید PDF']);
+        $vendor = plugin_dir_path(__FILE__) . 'vendor/autoload.php';
+        if (!file_exists($vendor)) {
+            wp_send_json_error([
+                'msg' => 'خطا: کتابخانه‌های لازم نصب نشده‌اند. لطفاً دستور زیر را در مسیر پلاگین اجرا کنید:<br><code>composer install</code>',
+                'error_type' => 'missing_vendor'
+            ]);
+        } else {
+            wp_send_json_error([
+                'msg' => 'خطا در تولید PDF. لطفاً مجوزهای نوشتن در پوشه uploads را بررسی کنید.',
+                'error_type' => 'pdf_generation'
+            ]);
+        }
     }
     
     $pdf_name = basename($pdf_path);
@@ -229,23 +240,32 @@ function honar_contract_submit() {
 }
 
 /**
- * تولید PDF قرارداد از فایل Word
+ * تولید PDF قرارداد از فایل Word یا HTML
  */
 function honar_generate_contract_pdf($name, $title, $address, $email, $plan, $gregorian_date, $jalali_date, $sig_path, $contracts_dir) {
     $vendor = plugin_dir_path(__FILE__) . 'vendor/autoload.php';
     
+    // اگر vendor نصب نیست، مستقیم از HTML استفاده کن
     if (!file_exists($vendor)) {
-        return false;
+        error_log('Honar Contract: vendor/autoload.php not found, using HTML method');
+        return honar_generate_html_pdf($name, $title, $address, $email, $plan, $jalali_date, $sig_path, $contracts_dir);
     }
     
     require_once $vendor;
     
+    // بررسی وجود فایل قالب Word
+    $templatePath = HONAR_CONTRACT_TEMPLATE;
+    
+    if (!file_exists($templatePath)) {
+        error_log('Honar Contract: Word template not found at: ' . $templatePath);
+        return honar_generate_html_pdf($name, $title, $address, $email, $plan, $jalali_date, $sig_path, $contracts_dir);
+    }
+    
+    // تلاش برای استفاده از Word
     try {
-        // خواندن قالب Word
-        $templatePath = HONAR_CONTRACT_TEMPLATE;
-        
-        if (!file_exists($templatePath)) {
-            // اگر فایل Word موجود نباشد، از HTML استفاده کن
+        // بررسی وجود کلاس PHPWord
+        if (!class_exists('\PhpOffice\PhpWord\IOFactory')) {
+            error_log('Honar Contract: PHPWord class not found');
             return honar_generate_html_pdf($name, $title, $address, $email, $plan, $jalali_date, $sig_path, $contracts_dir);
         }
         
@@ -292,7 +312,7 @@ function honar_generate_contract_pdf($name, $title, $address, $email, $plan, $gr
         return honar_html_to_pdf($html, $contracts_dir);
         
     } catch (Exception $e) {
-        error_log('Honar Contract Error: ' . $e->getMessage());
+        error_log('Honar Contract Word Error: ' . $e->getMessage());
         // در صورت خطا، از روش HTML استفاده کن
         return honar_generate_html_pdf($name, $title, $address, $email, $plan, $jalali_date, $sig_path, $contracts_dir);
     }
@@ -452,7 +472,22 @@ function honar_generate_html_pdf($name, $title, $address, $email, $plan, $jalali
  * تبدیل HTML به PDF
  */
 function honar_html_to_pdf($html, $contracts_dir) {
+    $vendor = plugin_dir_path(__FILE__) . 'vendor/autoload.php';
+    
+    if (!file_exists($vendor)) {
+        error_log('Honar Contract: Cannot generate PDF - vendor not installed');
+        return false;
+    }
+    
+    require_once $vendor;
+    
     try {
+        // بررسی وجود کلاس Dompdf
+        if (!class_exists('\Dompdf\Dompdf')) {
+            error_log('Honar Contract: Dompdf class not found');
+            return false;
+        }
+        
         $options = new \Dompdf\Options();
         $options->set('isRemoteEnabled', true);
         $options->set('isHtml5ParserEnabled', true);
@@ -469,6 +504,7 @@ function honar_html_to_pdf($html, $contracts_dir) {
         $pdf_path = trailingslashit($contracts_dir) . $pdf_name;
         
         if (!file_put_contents($pdf_path, $pdf_output)) {
+            error_log('Honar Contract: Failed to write PDF file');
             return false;
         }
         
